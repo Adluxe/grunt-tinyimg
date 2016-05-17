@@ -13,6 +13,7 @@ var svg = require('../lib/svg');
 module.exports = function(grunt) {
 
   var total = 0;
+  var subtotal = 0;
 
   function optimizeFile(file, callback) {
 
@@ -56,6 +57,7 @@ module.exports = function(grunt) {
         // Only copy the temp file if it's smaller than the original
         if (newFile < oldFile) {
           total += oldFile - newFile;
+          subtotal += oldFile - newFile;
           grunt.file.copy(tmpDest, dest);
           grunt.log.writeln('Optimized ' + dest.cyan +
               ' [saved ' + savings + ' % - ' + filesize(oldFile, 1, false) + ' → ' + filesize(newFile, 1, false) + ']');
@@ -85,7 +87,9 @@ module.exports = function(grunt) {
     var queue = async.queue(optimizeFile, 4);
 
     queue.drain = function() {
+      grunt.log.writeln('Run savings: ' + filesize(subtotal, 1, false).green);
       grunt.log.writeln('Total savings: ' + filesize(total, 1, false).green);
+      subtotal = 0;
       return callback();
     };
 
