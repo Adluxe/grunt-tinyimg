@@ -1,6 +1,6 @@
 {
   "name": "adluxe-grunt-tinyimg",
-  "version": "1.0.4",
+  "version": "1.0.5",
   "description": "Optimize PNG, JPEG & SVG images.",
   "repository": {
     "type": "git",
@@ -27,12 +27,12 @@
   },
   "homepage": "https://github.com/Adluxe/grunt-tinyimg",
   "dependencies": {
-    "async": "^1.4.0",
-    "filesize": "^3.1.3",
-    "mozjpeg": "^4.0.0",
-    "pngquant-bin": "^3.0.0",
-    "svgo": "^0.5.3",
-    "tmp": "^0.0.26"
+    "async": "^2.0.0",
+    "filesize": "^3.3.0",
+    "mozjpeg": "^4.1.1",
+    "pngquant-bin": "^3.1.1",
+    "svgo": "^0.6.6",
+    "tmp": "^0.0.28"
   },
   "devDependencies": {
     "grunt": "*",

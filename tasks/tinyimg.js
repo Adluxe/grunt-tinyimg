@@ -1,124 +1,124 @@
 'use strict';
 
-var path = require('path');
-var async = require('async');
-var fs = require('fs');
-var filesize = require('filesize');
-var tmp = require('tmp');
+var path = require('path'),
+    async = require('async'),
+    fs = require('fs'),
+    filesize = require('filesize'),
+    tmp = require('tmp'),
+    png = require('../lib/png'),
+    jpg = require('../lib/jpg'),
+    svg = require('../lib/svg');
 
-var png = require('../lib/png');
-var jpg = require('../lib/jpg');
-var svg = require('../lib/svg');
+module.exports = function (grunt) {
 
-module.exports = function(grunt) {
+    var total = 0,
+        subtotal = 0,
 
-  var total = 0;
-  var subtotal = 0;
+    optimizeFile = function (file, callback) {
 
-  function optimizeFile(file, callback) {
+        var src = file.src,
+            dest = file.dest,
+            extension = path.extname(file.src).toLowerCase();
 
-    var src = file.src;
-    var dest = file.dest;
+        tmp.file({
+            postfix: extension
+        }, function (error, tmpDest, tmpFd) {
 
-    var extension = path.extname(file.src).toLowerCase();
+            if (error || !tmpDest) {
 
-    tmp.tmpName({
-      postfix: extension
-    }, function(error, tmpDest) {
+                // Copy original to destination
+                grunt.file.copy(src, dest);
+                grunt.log.writeln('Skipped ' + dest.cyan + ' [no savings]');
+                grunt.log.error('Failed to create temporary file.');
 
-      if (error || !tmpDest) {
+                return callback(error);
+            }
 
-        // Copy original to destination
-        grunt.file.copy(src, dest);
-        grunt.log.writeln('Skipped ' + dest.cyan + ' [no savings]');
-        grunt.log.error('Failed to create temporary file.');
+            function next(err) {
 
-        return callback(error);
-      }
+                if (err) {
 
-      function next(err) {
+                    // Copy original to destination
+                    grunt.file.copy(src, dest);
+                    grunt.log.writeln('Skipped ' + dest.cyan + ' [no savings]');
+                    grunt.log.error(err.message);
+                    console.log(err);
+                    return callback(err);
+                }
 
-        if (err) {
+                var oldFile = fs.statSync(src).size,
+                    newFile = fs.statSync(tmpDest).size,
+                    savings = Math.floor((oldFile - newFile) / oldFile * 100);
 
-          // Copy original to destination
-          grunt.file.copy(src, dest);
-          grunt.log.writeln('Skipped ' + dest.cyan + ' [no savings]');
-          grunt.log.error(err.message);
+                // Only copy the temp file if it's smaller than the original
+                if (newFile < oldFile) {
+                    total += oldFile - newFile;
+                    subtotal += oldFile - newFile;
+                    grunt.file.copy(tmpDest, dest);
+                    grunt.log.writeln('Optimized ' + dest.cyan +
+                        ' [saved ' + savings + ' % - ' +
+                        filesize(oldFile, 1, false) + ' → ' +
+                        filesize(newFile, 1, false) + ']');
+                } else {
+                    grunt.file.copy(src, dest);
+                    grunt.log.writeln('Skipped ' + dest.cyan + ' [no savings]');
+                }
 
-          console.log(err);
+                return callback();
+            }
 
-          return callback(err);
-        }
+            fs.closeSync(tmpFd);
 
-        var oldFile = fs.statSync(src).size;
-        var newFile = fs.statSync(tmpDest).size;
-        var savings = Math.floor((oldFile - newFile) / oldFile * 100);
+            if (extension === '.png') {
+                png(tmpDest, src, next);
+            } else if (extension === '.jpg' || extension === '.jpeg') {
+                jpg(tmpDest, src, next);
+            } else if (extension === '.svg') {
+                svg(tmpDest, src, next);
+            } else {
+                grunt.log.writeln(src.cyan + ' not supported.');
+                return callback();
+            }
+        });
+    },
 
-        // Only copy the temp file if it's smaller than the original
-        if (newFile < oldFile) {
-          total += oldFile - newFile;
-          subtotal += oldFile - newFile;
-          grunt.file.copy(tmpDest, dest);
-          grunt.log.writeln('Optimized ' + dest.cyan +
-              ' [saved ' + savings + ' % - ' + filesize(oldFile, 1, false) + ' → ' + filesize(newFile, 1, false) + ']');
-        } else {
-          grunt.file.copy(src, dest);
-          grunt.log.writeln('Skipped ' + dest.cyan + ' [no savings]');
-        }
+    optimizeFiles = function (gruntFiles, callback) {
 
-        return callback();
-      }
+        var queue = async.queue(optimizeFile, 4);
 
-      if (extension === '.png') {
-        png(tmpDest, src, next);
-      } else if (extension === '.jpg' || extension === '.jpeg') {
-        jpg(tmpDest, src, next);
-      } else if (extension === '.svg') {
-        svg(tmpDest, src, next);
-      } else {
-        grunt.log.writeln(src.cyan + ' not supported.');
-        return callback();
-      }
-    });
-  }
+        queue.drain = function () {
+            grunt.log.writeln('Run savings: ' + filesize(subtotal, 1, false).green);
+            grunt.log.writeln('Total savings: ' + filesize(total, 1, false).green);
+            subtotal = 0;
+            return callback();
+        };
 
-  function optimizeFiles(gruntFiles, callback) {
+        gruntFiles.forEach(function (f) {
+            var dest = f.dest,
+                files = f.src.filter(function (filepath) {
+                    if (!grunt.file.exists(filepath)) {
+                        grunt.log.warn('\nSource file "' + filepath + '" not found.');
+                        return false;
+                    } else {
+                        return true;
+                    }
+                }).map(function (filepath) {
+                    return {
+                        src: filepath,
+                        dest: dest
+                    };
+                });
 
-    var queue = async.queue(optimizeFile, 4);
+            if (files.length === 0) {
+                grunt.log.writeln('No images were found for given path(s): ' + f.orig.src.join(', '));
+                return callback();
+            }
 
-    queue.drain = function() {
-      grunt.log.writeln('Run savings: ' + filesize(subtotal, 1, false).green);
-      grunt.log.writeln('Total savings: ' + filesize(total, 1, false).green);
-      subtotal = 0;
-      return callback();
+            queue.push(files);
+        });
     };
 
-    gruntFiles.forEach(function(f) {
-      var dest = f.dest;
-      var files = f.src.filter(function(filepath) {
-        if (!grunt.file.exists(filepath)) {
-          grunt.log.warn('\nSource file "' + filepath + '" not found.');
-          return false;
-        } else {
-          return true;
-        }
-      }).map(function(filepath) {
-        return {
-          src: filepath,
-          dest: dest
-        };
-      });
-
-      if (files.length === 0) {
-        grunt.log.writeln('No images were found for given path(s): ' + f.orig.src.join(', '));
-        return callback();
-      }
-
-      queue.push(files);
+    grunt.registerMultiTask('tinyimg', 'Optimize png, jpg and svg images.', function () {
+        optimizeFiles(this.files, this.async());
     });
-  }
-
-  grunt.registerMultiTask('tinyimg', 'Optimize png, jpg and svg images.', function() {
-    optimizeFiles(this.files, this.async());
-  });
 };
