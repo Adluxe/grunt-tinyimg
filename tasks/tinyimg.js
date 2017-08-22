@@ -75,6 +75,8 @@ module.exports = function (grunt) {
                 jpg(tmpDest, src, next);
             } else if (extension === '.svg') {
                 svg(tmpDest, src, next);
+            } else if (extension === '.gif') {
+                grunt.file.copy(src, dest);
             } else {
                 grunt.log.writeln(src.cyan + ' not supported.');
                 return callback();

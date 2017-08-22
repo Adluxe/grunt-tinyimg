@@ -1,7 +1,7 @@
 {
   "name": "adluxe-grunt-tinyimg",
-  "version": "1.0.6",
-  "description": "Optimize PNG, JPEG & SVG images.",
+  "version": "1.0.7",
+  "description": "Optimize PNG, JPEG & SVG images. Copy GIF as-is.",
   "repository": {
     "type": "git",
     "url": "git://github.com/Adluxe/grunt-tinyimg.git"
