@@ -37,8 +37,8 @@ module.exports = function (grunt) {
       }
     }
   });
-    
-  grunt.loadNpmTasks('grunt-tinyimg');
+
+  grunt.loadNpmTasks('grunt-tinyimg:100:256');
 };
 ```
 
