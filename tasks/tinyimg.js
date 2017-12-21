@@ -124,7 +124,7 @@ module.exports = function (grunt) {
         };
 
     grunt.registerMultiTask('tinyimg', 'Optimize png, jpg and svg images.', function (jpgQuality, pngColors) {
-        _jpgQuality = jpgQuality || 100;
+        _jpgQuality = jpgQuality || -1;
         _pngColors = pngColors || 256;
         optimizeFiles(this.files, this.async());
     });
