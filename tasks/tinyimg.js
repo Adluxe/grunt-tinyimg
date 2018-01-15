@@ -89,6 +89,11 @@ module.exports = function (grunt) {
 
         optimizeFiles = function (gruntFiles, callback) {
 
+            if (gruntFiles.length === 0) {
+                grunt.log.writeln('No images were given');
+                return callback();
+            }
+
             var queue = async.queue(optimizeFile, 4);
 
             queue.drain = function () {
